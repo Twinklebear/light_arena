@@ -23,6 +23,8 @@ impl Foo for Baz {
     }
 }
 
+// TODO: Tests for basic use, respecting alignment, scope management, on
+// demand allocation, and so on
 #[test]
 fn it_works() {
     let mut arena = MemoryArena::new(2);
