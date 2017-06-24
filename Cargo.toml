@@ -6,3 +6,6 @@ authors = ["Will Usher <willusher.life@gmail.com>"]
 [dependencies]
 clippy = "0.0.140"
 
+[features]
+unstable = []
+
