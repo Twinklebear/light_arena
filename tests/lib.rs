@@ -22,10 +22,11 @@ impl Foo for Baz {
         println!("Baz!");
     }
 }
+
 #[test]
 fn it_works() {
-    let mut raw_arena = MemoryArena::new(2);
-    let allocator = raw_arena.allocator();
+    let mut arena = MemoryArena::new(2);
+    let allocator = arena.allocator();
     let a: &Foo = &allocator <- Baz;
     let b: &Foo = &allocator <- Bar(10);
     let c: &Foo = &allocator <- Bar(14);
