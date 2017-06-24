@@ -243,3 +243,46 @@ impl<'a, T: 'a + Sized + Copy> InPlace<T> for AllocatorPlacer<'a, T> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_align_address() {
+        assert_eq!(align_address(4 as *const u8, 4), 0);
+        assert_eq!(align_address(5 as *const u8, 4), 3);
+        assert_eq!(align_address(17 as *const u8, 1), 0);
+    }
+
+    #[test]
+    fn test_block() {
+        let mut b = Block::new(16);
+        assert!(b.has_room(16, 1));
+        let a = unsafe { b.reserve(3, 1) };
+        let c = unsafe { b.reserve(4, 4) };
+        assert_eq!(c as usize - a as usize, 4);
+        // This check is kind of assuming that the block's buffer
+        // is at least 4-byte aligned which is probably a safe assumption.
+        assert_eq!(b.size, 8);
+
+        assert!(!b.has_room(32, 4));
+        let d = unsafe { b.reserve(32, 4) };
+        assert_eq!(d, ptr::null_mut());
+    }
+
+    #[test]
+    fn test_memory_arena() {
+        let mut arena = MemoryArena::new(1);
+        let a = unsafe { arena.reserve(1024, 4) };
+        assert_eq!(align_address(a, 4), 0);
+        assert_eq!(arena.blocks[0].size, 1024);
+
+        let two_mb = 2 * 1024 * 1024;
+        let b = unsafe { arena.reserve(two_mb, 32) };
+        assert_eq!(align_address(b, 32), 0);
+        assert_eq!(arena.blocks.len(), 2);
+        assert_eq!(arena.blocks[1].buffer.capacity(), two_mb + 32);
+        assert_eq!(arena.blocks[1].size, two_mb);
+    }
+}
+
