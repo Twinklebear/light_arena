@@ -1,4 +1,4 @@
-#![feature(placement_in_syntax, placement_new_protocol, plugin)]
+#![feature(placement_in_syntax, placement_new_protocol, plugin, offset_to)]
 #![plugin(clippy)]
 
 //! A lightweight, placement based memory arena for any types which are `Sized + Copy`.
@@ -79,7 +79,7 @@
 use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::{cmp, mem};
+use std::{cmp, mem, ptr};
 
 /// A block of bytes used to back allocations requested from the `MemoryArena`.
 struct Block {
@@ -140,21 +140,35 @@ impl MemoryArena {
         Allocator { arena: RefCell::new(self) }
     }
     /// Reserve a chunk of bytes in some block of the memory arena
-    unsafe fn reserve(&mut self, size: usize) -> *mut u8 {
+    unsafe fn reserve(&mut self, size: usize, align: usize) -> *mut u8 {
         for b in &mut self.blocks[..] {
-            if b.buffer.capacity() - b.size >= size {
-                let ptr = b.buffer.as_mut_ptr().offset(b.size as isize);
-                b.size += size;
+            let align_offset = align_address(b.buffer.as_ptr().offset(b.size as isize), align);
+            if b.buffer.capacity() - b.size - align_offset >= size {
+                let ptr = b.buffer.as_mut_ptr().offset((b.size + align_offset) as isize);
+                b.size += size + align_offset;
                 return ptr;
             }
         }
         // No free blocks with enough room, we have to allocate
         let new_block_size = cmp::max(self.block_size, size);
         self.blocks.push(Block::new(new_block_size));
+
         let b = &mut self.blocks.last_mut().unwrap();
-        let ptr = b.buffer.as_mut_ptr().offset(b.size as isize);
-        b.size += size;
+        let align_offset = align_address(b.buffer.as_ptr(), align);
+        let ptr = b.buffer.as_mut_ptr().offset(align_offset as isize);
+        b.size += align_offset;
         ptr
+    }
+}
+
+/// Compute the number of bytes we need to offset the `ptr` by to align
+/// it to the desired alignment.
+fn align_address(ptr: *const u8, align: usize) -> usize {
+    let base = ptr::null().offset_to(ptr).unwrap() as usize;
+    if base % align != 0 {
+        align - base % align
+    } else {
+        0
     }
 }
 
@@ -195,7 +209,7 @@ impl<'a, 'b, T: 'b + Sized + Copy> Placer<T> for &'a Allocator<'b> {
 
     fn make_place(self) -> Self::Place {
         let mut arena = self.arena.borrow_mut();
-        let ptr = unsafe { arena.reserve(mem::size_of::<T>()) };
+        let ptr = unsafe { arena.reserve(mem::size_of::<T>(), mem::align_of::<T>()) };
         AllocatorPlacer {
             ptr: ptr,
             phantom: PhantomData,
