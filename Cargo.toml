@@ -11,10 +11,9 @@ readme = "README.md"
 license = "MIT"
 keywords = ["arena"]
 
-
 [dependencies]
-clippy = "0.0.140"
+clippy = { version = "0.0.140", optional = true }
 
 [features]
-unstable = []
+unstable = ["clippy"]
 

@@ -1,5 +1,6 @@
 #![feature(placement_in_syntax, placement_new_protocol, plugin)]
-#![plugin(clippy)]
+#![cfg_attr(feature = "unstable", feature(plugin))]
+#![cfg_attr(feature = "unstable", plugin(clippy))]
 
 //! A lightweight, placement based memory arena for any types which are `Sized + Copy`.
 //! This crate uses the placement in syntax and placement new protocol and
