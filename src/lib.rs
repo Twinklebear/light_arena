@@ -1,4 +1,4 @@
-#![feature(placement_in_syntax, placement_new_protocol, plugin, offset_to)]
+#![feature(placement_in_syntax, placement_new_protocol, plugin)]
 #![plugin(clippy)]
 
 //! A lightweight, placement based memory arena for any types which are `Sized + Copy`.
@@ -79,7 +79,7 @@
 use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::{cmp, mem, ptr};
+use std::{cmp, mem};
 
 /// A block of bytes used to back allocations requested from the `MemoryArena`.
 struct Block {
@@ -164,9 +164,9 @@ impl MemoryArena {
 /// Compute the number of bytes we need to offset the `ptr` by to align
 /// it to the desired alignment.
 fn align_address(ptr: *const u8, align: usize) -> usize {
-    let base = ptr::null().offset_to(ptr).unwrap() as usize;
-    if base % align != 0 {
-        align - base % align
+    let addr = ptr as usize;
+    if addr % align != 0 {
+        align - addr % align
     } else {
         0
     }
