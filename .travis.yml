@@ -1,0 +1,18 @@
+language: rust
+rust:
+- nightly
+sudo: false
+before_script:
+- pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+script:
+- travis-cargo build
+- travis-cargo test
+- travis-cargo bench
+- travis-cargo doc
+after_success:
+- git config user.name "Travis-CI Doc Bot"
+- git config user.email "willusher.life@gmail.com"
+- travis-cargo --only nightly doc-upload
+env:
+  global:
+    secure: IGfWhWQsA7qTVwRcD3LlI4s/4oKyN7FXPoJqkcbgwmG/hiSqKotLBhDWe/CLLnS8Ug4evFmT938UZI8e3dqRRsTiLw5i+nEWyOYqv1pWEgjmmL5BGjQ+6wZ8JJCKFQqokYsizY9D0lk901xYBmHkR7pHLQr4lHMaNaVfgl1tDwxYY/6IiYiP1cPKNZ4NzrJ/RViqAkZYwICUAOCrfV2Tscnous0IzB8F7AxYRzyZxCh6Jq32uzxWugVRzo6BgZ1ATFrqGeVZ3E4V4VV4RDMW/DVNRpobrjk0LGyvjrYkCkhcs+63Tu5PkDCrAL9qoiHubh6zbgwc1BXLFcj81VNDvWPUk6IRjgOlUHQFY1WbVKMR//ylubYhMFKlGAhlSlGt84FYvIeHWWQ8tk6bLj76qI2vovA4jgbBey4e8MIpOQxTi03TUpVigPLtXaDdX9DWv2z5s+dHtCXuu9g2AT7xCPG+Gn+yqz/iE+idOXCOpPIWQxtw1ehIbQV4P+2T2GfxsVWhMByVAa5WsVG3oP/160K66V17N93DB4EpG5jflZqUZ338M4g/CCRN7WMaAGZeBohGzSSQhNcSaqXt8Oh9yEZnkUsmVP6KuLOleCWWuwKTNlWXV6LQvRVoOW2b2FFg2G+G8G4FywCpP/vDTgAdcZsYonad4rnu7nUJZqv/540=

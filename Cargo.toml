@@ -4,3 +4,8 @@ version = "0.1.0"
 authors = ["Will Usher <willusher.life@gmail.com>"]
 
 [dependencies]
+clippy = { version = "0.0.140", optional = true }
+
+[features]
+unstable = ["clippy"]
+

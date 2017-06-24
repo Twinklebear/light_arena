@@ -1,4 +1,6 @@
 #![feature(placement_in_syntax, placement_new_protocol)]
+#![cfg_attr(feature = "unstable", feature(plugin))]
+#![cfg_attr(feature = "unstable", plugin(clippy))]
 
 use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
@@ -46,7 +48,7 @@ impl MemoryArena {
         // No free blocks with enough room, we have to allocate
         let new_block_size = cmp::max(self.block_size, size);
         self.blocks.push(Block::new(new_block_size));
-        let ref mut b = self.blocks.last_mut().unwrap();
+        let b = &mut self.blocks.last_mut().unwrap();
         let ptr = b.buffer.as_mut_ptr().offset(b.size as isize);
         b.size += size;
         ptr
