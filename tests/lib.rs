@@ -181,3 +181,30 @@ fn trait_objects() {
     assert_eq!(clamp.eval(-10), -2);
 }
 
+#[test]
+fn dynamic_slice() {
+    let mut arena = MemoryArena::new(2);
+    let allocator = arena.allocator();
+    let x = allocator.alloc_slice::<usize>(16);
+    for (i, v) in x.iter_mut().enumerate() {
+        *v = i;
+    }
+
+    for (i, v) in x.iter().enumerate() {
+        assert_eq!(*v, i);
+    }
+
+    let y = allocator.alloc_slice::<usize>(16);
+    for (i, v) in y.iter_mut().enumerate() {
+        *v = i;
+    }
+
+    for (i, v) in x.iter().enumerate() {
+        assert_eq!(*v, i);
+    }
+    for (i, v) in y.iter().enumerate() {
+        assert_eq!(*v, i);
+    }
+    assert_eq!(x.as_ptr() as usize + std::mem::size_of::<usize>() * 16, y.as_ptr() as usize);
+}
+

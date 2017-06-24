@@ -196,6 +196,18 @@ impl MemoryArena {
 pub struct Allocator<'a> {
     arena: RefCell<&'a mut MemoryArena>,
 }
+impl<'a> Allocator<'a> {
+    /// Get a dynamically sized slice of data from the allocator. The
+    /// contents of the slice will be unintialized.
+    pub fn alloc_slice<'b, T: Sized + Copy>(&'b self, len: usize) -> &'b mut [T] {
+        let mut arena = self.arena.borrow_mut();
+        let size = len * mem::size_of::<T>();
+        unsafe {
+            let ptr = arena.reserve(size, mem::align_of::<T>()) as *mut T;
+            std::slice::from_raw_parts_mut(ptr, len)
+        }
+    }
+}
 impl<'a> Drop for Allocator<'a> {
     /// Upon dropping the allocator we mark all the blocks in the arena
     /// as empty again, "releasing" our allocations.
