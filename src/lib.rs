@@ -150,13 +150,13 @@ impl MemoryArena {
             }
         }
         // No free blocks with enough room, we have to allocate
-        let new_block_size = cmp::max(self.block_size, size);
+        let new_block_size = cmp::max(self.block_size, size + align);
         self.blocks.push(Block::new(new_block_size));
 
         let b = &mut self.blocks.last_mut().unwrap();
         let align_offset = align_address(b.buffer.as_ptr(), align);
         let ptr = b.buffer.as_mut_ptr().offset(align_offset as isize);
-        b.size += align_offset;
+        b.size += size + align_offset;
         ptr
     }
 }
