@@ -3,7 +3,7 @@ name = "light_arena"
 version = "0.1.0"
 authors = ["Will Usher <willusher.life@gmail.com>"]
 
-description = "A lightweight, placement based memory arena for any types which are `Sized + Copy`.**This crate requires nightly**."
+description = "A lightweight, placement based memory arena for types which are Sized + Copy. This crate requires nightly."
 homepage = "https://github.com/Twinklebear/light_arena"
 repository = "https://github.com/Twinklebear/light_arena"
 documentation = "http://www.willusher.io/light_arena/light_arena/"
