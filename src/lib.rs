@@ -248,14 +248,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_align_address() {
+    fn aligner() {
         assert_eq!(align_address(4 as *const u8, 4), 0);
         assert_eq!(align_address(5 as *const u8, 4), 3);
         assert_eq!(align_address(17 as *const u8, 1), 0);
     }
 
     #[test]
-    fn test_block() {
+    fn block() {
         let mut b = Block::new(16);
         assert!(b.has_room(16, 1));
         let a = unsafe { b.reserve(3, 1) };
@@ -271,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn test_memory_arena() {
+    fn memory_arena() {
         let mut arena = MemoryArena::new(1);
         let a = unsafe { arena.reserve(1024, 4) };
         assert_eq!(align_address(a, 4), 0);
