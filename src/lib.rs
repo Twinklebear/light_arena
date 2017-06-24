@@ -1,6 +1,5 @@
-#![feature(placement_in_syntax, placement_new_protocol)]
-#![cfg_attr(feature = "unstable", feature(plugin))]
-#![cfg_attr(feature = "unstable", plugin(clippy))]
+#![feature(placement_in_syntax, placement_new_protocol, plugin)]
+#![plugin(clippy)]
 
 use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
