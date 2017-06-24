@@ -79,7 +79,7 @@
 use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::{cmp, mem};
+use std::{cmp, mem, ptr};
 
 /// A block of bytes used to back allocations requested from the `MemoryArena`.
 struct Block {
@@ -93,6 +93,35 @@ impl Block {
             buffer: Vec::with_capacity(size),
             size: 0,
         }
+    }
+    /// Reserve `size` bytes at alignment `align`. Returns null if the block doesn't
+    /// have enough room.
+    unsafe fn reserve(&mut self, size: usize, align: usize) -> *mut u8 {
+        if self.has_room(size, align) {
+            let align_offset = align_address(self.buffer.as_ptr().offset(self.size as isize), align);
+            let ptr = self.buffer.as_mut_ptr().offset((self.size + align_offset) as isize);
+            self.size += size + align_offset;
+            ptr
+        } else {
+            ptr::null_mut()
+        }
+    }
+    /// Check if this block has `size` bytes available at alignment `align`
+    fn has_room(&self, size: usize, align: usize) -> bool {
+        let ptr = unsafe { self.buffer.as_ptr().offset(self.size as isize) };
+        let align_offset = align_address(ptr, align);
+        self.buffer.capacity() - self.size >= size + align_offset
+    }
+}
+
+/// Compute the number of bytes we need to offset the `ptr` by to align
+/// it to the desired alignment.
+fn align_address(ptr: *const u8, align: usize) -> usize {
+    let addr = ptr as usize;
+    if addr % align != 0 {
+        align - addr % align
+    } else {
+        0
     }
 }
 
@@ -142,33 +171,17 @@ impl MemoryArena {
     /// Reserve a chunk of bytes in some block of the memory arena
     unsafe fn reserve(&mut self, size: usize, align: usize) -> *mut u8 {
         for b in &mut self.blocks[..] {
-            let align_offset = align_address(b.buffer.as_ptr().offset(b.size as isize), align);
-            if b.buffer.capacity() - b.size - align_offset >= size {
-                let ptr = b.buffer.as_mut_ptr().offset((b.size + align_offset) as isize);
-                b.size += size + align_offset;
-                return ptr;
+            if b.has_room(size, align) {
+                return b.reserve(size, align);
             }
         }
-        // No free blocks with enough room, we have to allocate
+        // No free blocks with enough room, we have to allocate. We also make
+        // sure we've got align bytes of padding available as we don't assume
+        // anything about the alignment of the underlying buffer.
         let new_block_size = cmp::max(self.block_size, size + align);
         self.blocks.push(Block::new(new_block_size));
-
         let b = &mut self.blocks.last_mut().unwrap();
-        let align_offset = align_address(b.buffer.as_ptr(), align);
-        let ptr = b.buffer.as_mut_ptr().offset(align_offset as isize);
-        b.size += size + align_offset;
-        ptr
-    }
-}
-
-/// Compute the number of bytes we need to offset the `ptr` by to align
-/// it to the desired alignment.
-fn align_address(ptr: *const u8, align: usize) -> usize {
-    let addr = ptr as usize;
-    if addr % align != 0 {
-        align - addr % align
-    } else {
-        0
+        b.reserve(size, align)
     }
 }
 
