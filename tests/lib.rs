@@ -36,11 +36,11 @@ fn buffer_reuse() {
         let allocator = arena.allocator();
         let x = &allocator <- [0usize; 32];
         for (i, v) in x.iter_mut().enumerate() {
-            *v = i;
+            *v = i * 2;
         }
 
         for (i, v) in x.iter().enumerate() {
-            assert_eq!(*v, i);
+            assert_eq!(*v, i * 2);
         }
         x.as_ptr() as usize
     };
@@ -62,7 +62,7 @@ fn on_demand_alloc() {
         }
         x.as_ptr() as usize
     };
-    let (addr_b, addr_c) = {
+    let addr_b = {
         let allocator = arena.allocator();
         let x = &allocator <- [0u32; 128];
         for (i, v) in x.iter_mut().enumerate() {
@@ -72,12 +72,18 @@ fn on_demand_alloc() {
         for (i, v) in x.iter().enumerate() {
             assert_eq!(*v, i as u32);
         }
+
+        x.as_ptr() as usize
+    };
+    let addr_c = {
+        let allocator = arena.allocator();
         let y = &allocator <- [0u8; 2 * 1024 * 1024];
 
-        (x.as_ptr() as usize, y.as_ptr() as usize)
+        y.as_ptr() as usize
     };
     assert_eq!(addr_a, addr_b);
     assert_ne!(addr_a, addr_c);
+    assert_ne!(addr_b, addr_c);
 }
 
 #[repr(align(256))]
