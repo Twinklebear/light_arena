@@ -230,7 +230,7 @@ pub struct AllocatorPlacer<'a, T: 'a + Sized + Copy> {
     phantom: PhantomData<&'a T>,
 }
 
-impl<'a, 'b, T: 'b + Sized + Copy> Placer<T> for &'a Allocator<'b> {
+impl<'a, 'b, T: 'a + Sized + Copy> Placer<T> for &'a Allocator<'b> {
     type Place = AllocatorPlacer<'a, T>;
 
     fn make_place(self) -> Self::Place {
