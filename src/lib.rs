@@ -199,7 +199,7 @@ pub struct Allocator<'a> {
 impl<'a> Allocator<'a> {
     /// Get a dynamically sized slice of data from the allocator. The
     /// contents of the slice will be unintialized.
-    pub fn alloc_slice<'b, T: Sized + Copy>(&'b self, len: usize) -> &'b mut [T] {
+    pub fn alloc_slice<T: Sized + Copy>(&self, len: usize) -> &mut [T] {
         let mut arena = self.arena.borrow_mut();
         let size = len * mem::size_of::<T>();
         unsafe {
