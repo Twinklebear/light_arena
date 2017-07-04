@@ -208,6 +208,18 @@ impl<'a> Allocator<'a> {
         }
     }
 }
+impl<'a, 'b, T: 'a + Sized + Copy> Placer<T> for &'a Allocator<'b> {
+    type Place = AllocatorPlacer<'a, T>;
+
+    fn make_place(self) -> Self::Place {
+        let mut arena = self.arena.borrow_mut();
+        let ptr = unsafe { arena.reserve(mem::size_of::<T>(), mem::align_of::<T>()) };
+        AllocatorPlacer {
+            ptr: ptr,
+            phantom: PhantomData,
+        }
+    }
+}
 impl<'a> Drop for Allocator<'a> {
     /// Upon dropping the allocator we mark all the blocks in the arena
     /// as empty again, "releasing" our allocations.
@@ -229,20 +241,6 @@ pub struct AllocatorPlacer<'a, T: 'a + Sized + Copy> {
     ptr: *mut u8,
     phantom: PhantomData<&'a T>,
 }
-
-impl<'a, 'b, T: 'a + Sized + Copy> Placer<T> for &'a Allocator<'b> {
-    type Place = AllocatorPlacer<'a, T>;
-
-    fn make_place(self) -> Self::Place {
-        let mut arena = self.arena.borrow_mut();
-        let ptr = unsafe { arena.reserve(mem::size_of::<T>(), mem::align_of::<T>()) };
-        AllocatorPlacer {
-            ptr: ptr,
-            phantom: PhantomData,
-        }
-    }
-}
-
 impl<'a, T: 'a + Sized + Copy> Place<T> for AllocatorPlacer<'a, T> {
     fn pointer(&mut self) -> *mut T {
         self.ptr as *mut T
