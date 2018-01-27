@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `light_arena` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, light_arena">
+
+    <title>light_arena - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../dark.css">
+    <link rel="stylesheet" type="text/css" href="../main.css" id="themeStyle">
+    <script src="../storage.js"></script>
+    
+
+    
+    
+</head>
+<body class="rustdoc mod">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
+        
+        <p class='location'>Crate light_arena</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'light_arena', ty: 'mod', relpath: '../'};</script></div>
+    </nav>
+
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../theme.js"></script>
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>light_arena</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/light_arena/lib.rs.html#1-298' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>A lightweight, placement based memory arena for any types which are <code>Sized + Copy</code>.
+This crate uses the placement in syntax and placement new protocol and
+thus <strong>requires nightly Rust</strong>.</p>
+<p>This crate is written to solve a specific problem I have in
+<a href="https://github.com/Twinklebear/tray_rust">tray_rust</a>, where I want to
+store trait objects and f32 arrays in a memory arena which is then reset
+and reused for each pixel rendered (but not free'd and reallocated!).
+The key features to enable this are the use of the nightly placement new feature, letting us
+actually construct objects in place instead of copying from a stack temporary,
+and reusing the previously allocated space via the <code>Allocator</code> scopes.
+If you have a similar problem, this might be the right crate for you!</p>
+<h2 id="examples" class="section-header"><a href="#examples">Examples</a></h2>
+<p>Allocations in a <code>MemoryArena</code> are made using an allocator and the
+placement in syntax. The <code>Allocator</code> grants exclusive access to the
+arena while it's in scope, allowing to make allocations. Once the <code>Allocator</code>
+is dropped the space used is marked available again for subsequent allocations.
+Note that <strong>Drop is never called</strong> on objects allocated in the arena,
+and thus the restriction that <code>T: Sized + Copy</code>.</p>
+
+<pre class="rust rust-example-rendered">
+<span class="attribute">#![<span class="ident">feature</span>(<span class="ident">placement_in_syntax</span>)]</span>
+<span class="kw">use</span> <span class="ident">light_arena</span>;
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arena</span> <span class="op">=</span> <span class="ident">light_arena</span>::<span class="ident">MemoryArena</span>::<span class="ident">new</span>(<span class="number">8</span>);
+<span class="kw">let</span> <span class="ident">alloc</span> <span class="op">=</span> <span class="ident">arena</span>.<span class="ident">allocator</span>();
+<span class="comment">// This would overflow the stack without placement new!</span>
+<span class="kw">let</span> <span class="ident">bytes</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">alloc</span> &lt;- [<span class="number">0u8</span>; <span class="number">8</span> <span class="op">*</span> <span class="number">1024</span> <span class="op">*</span> <span class="number">1024</span>];</pre>
+<p>The arena is untyped and can store anything which is <code>Sized + Copy</code>.</p>
+
+<pre class="rust rust-example-rendered">
+<span class="attribute">#![<span class="ident">feature</span>(<span class="ident">placement_in_syntax</span>)]</span>
+
+<span class="kw">trait</span> <span class="ident">Foo</span> {
+    <span class="kw">fn</span> <span class="ident">speak</span>(<span class="kw-2">&amp;</span><span class="self">self</span>);
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Bar</span>(<span class="ident">i32</span>);
+<span class="kw">impl</span> <span class="ident">Foo</span> <span class="kw">for</span> <span class="ident">Bar</span> {
+    <span class="kw">fn</span> <span class="ident">speak</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Bar! val = {}&quot;</span>, <span class="self">self</span>.<span class="number">0</span>);
+    }
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Baz</span>;
+<span class="kw">impl</span> <span class="ident">Foo</span> <span class="kw">for</span> <span class="ident">Baz</span> {
+    <span class="kw">fn</span> <span class="ident">speak</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Baz!&quot;</span>);
+    }
+}
+
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arena</span> <span class="op">=</span> <span class="ident">light_arena</span>::<span class="ident">MemoryArena</span>::<span class="ident">new</span>(<span class="number">2</span>);
+<span class="kw">let</span> <span class="ident">allocator</span> <span class="op">=</span> <span class="ident">arena</span>.<span class="ident">allocator</span>();
+<span class="kw">let</span> <span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="ident">Foo</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">allocator</span> &lt;- <span class="ident">Baz</span>;
+<span class="kw">let</span> <span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="ident">Foo</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">allocator</span> &lt;- <span class="ident">Bar</span>(<span class="number">10</span>);
+<span class="kw">let</span> <span class="ident">c</span>: <span class="kw-2">&amp;</span><span class="ident">Foo</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">allocator</span> &lt;- <span class="ident">Bar</span>(<span class="number">14</span>);
+<span class="ident">a</span>.<span class="ident">speak</span>();
+<span class="ident">b</span>.<span class="ident">speak</span>();
+<span class="ident">c</span>.<span class="ident">speak</span>();
+<span class="comment">// Storing 0-sized types can give some interesting results</span>
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;a = {:p}&quot;</span>, <span class="ident">a</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Foo</span>);
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;b = {:p}&quot;</span>, <span class="ident">b</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Foo</span>);
+<span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;c = {:p}&quot;</span>, <span class="ident">c</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Foo</span>);</pre>
+<h2 id="blockers" class="section-header"><a href="#blockers">Blockers</a></h2>
+<ul>
+<li>placement_in_syntax and placement_new_protocol are required,
+see https://github.com/rust-lang/rust/issues/27779</li>
+</ul>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Allocator.html"
+                                  title='struct light_arena::Allocator'>Allocator</a></td>
+                           <td class='docblock-short'>
+                                <p>The allocator provides exclusive access to the memory arena, allowing
+for allocation of objects in the arena.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.AllocatorPlacer.html"
+                                  title='struct light_arena::AllocatorPlacer'>AllocatorPlacer</a></td>
+                           <td class='docblock-short'>
+                                <p>Object representing a place to put a newly requested allocation.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.MemoryArena.html"
+                                  title='struct light_arena::MemoryArena'>MemoryArena</a></td>
+                           <td class='docblock-short'>
+                                <p>Provides the backing storage to serve allocations requested by an <code>Allocator</code>.</p>
+
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt><kbd>?</kbd></dt>
+                    <dd>Show this help dialog</dd>
+                    <dt><kbd>S</kbd></dt>
+                    <dd>Focus the search field</dd>
+                    <dt><kbd>↑</kbd></dt>
+                    <dd>Move up in search results</dd>
+                    <dt><kbd>↓</kbd></dt>
+                    <dd>Move down in search results</dd>
+                    <dt><kbd>↹</kbd></dt>
+                    <dd>Switch tab</dd>
+                    <dt><kbd>&#9166;</kbd></dt>
+                    <dd>Go to active search result</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "light_arena";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
