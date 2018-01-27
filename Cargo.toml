@@ -12,7 +12,7 @@ license = "MIT"
 keywords = ["arena"]
 
 [dependencies]
-clippy = { version = "0.0.142", optional = true }
+clippy = { version = "0.0.182", optional = true }
 
 [features]
 unstable = []

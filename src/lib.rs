@@ -241,7 +241,7 @@ pub struct AllocatorPlacer<'a, T: 'a + Sized + Copy> {
     ptr: *mut u8,
     phantom: PhantomData<&'a T>,
 }
-impl<'a, T: 'a + Sized + Copy> Place<T> for AllocatorPlacer<'a, T> {
+unsafe impl<'a, T: 'a + Sized + Copy> Place<T> for AllocatorPlacer<'a, T> {
     fn pointer(&mut self) -> *mut T {
         self.ptr as *mut T
     }

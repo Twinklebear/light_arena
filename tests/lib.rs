@@ -1,4 +1,4 @@
-#![feature(placement_in_syntax, repr_align, attr_literals)]
+#![feature(placement_in_syntax, attr_literals)]
 extern crate light_arena;
 
 use light_arena::MemoryArena;
@@ -115,7 +115,7 @@ fn placement_alloc() {
     let mut arena = MemoryArena::new(16);
     let allocator = arena.allocator();
     // This would overflow the stack without proper in-place construction!
-    let b = &allocator <- [0u8; 8 * 1024 * 1024];
+    let _b = &allocator <- [0u8; 8 * 1024 * 1024];
 }
 
 trait Eval {
