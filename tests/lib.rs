@@ -1,4 +1,4 @@
-#![feature(placement_in_syntax, repr_align, attr_literals)]
+#![feature(repr_align, attr_literals)]
 extern crate light_arena;
 
 use light_arena::MemoryArena;
@@ -7,7 +7,7 @@ use light_arena::MemoryArena;
 fn basic_usage() {
     let mut arena = MemoryArena::new(2);
     let allocator = arena.allocator();
-    let x = &allocator <- [0usize; 16];
+    let x = allocator.alloc([0usize; 16]);
     for (i, v) in x.iter_mut().enumerate() {
         *v = i;
     }
@@ -20,9 +20,9 @@ fn basic_usage() {
 #[test]
 fn buffer_reuse() {
     let mut arena = MemoryArena::new(2);
-    let addr_a =  {
+    let addr_a = {
         let allocator = arena.allocator();
-        let x = &allocator <- [0usize; 16];
+        let x = allocator.alloc([0usize; 16]);
         for (i, v) in x.iter_mut().enumerate() {
             *v = i;
         }
@@ -34,7 +34,7 @@ fn buffer_reuse() {
     };
     let addr_b = {
         let allocator = arena.allocator();
-        let x = &allocator <- [0usize; 32];
+        let x = allocator.alloc([0usize; 32]);
         for (i, v) in x.iter_mut().enumerate() {
             *v = i * 2;
         }
@@ -50,9 +50,9 @@ fn buffer_reuse() {
 #[test]
 fn on_demand_alloc() {
     let mut arena = MemoryArena::new(1);
-    let addr_a =  {
+    let addr_a = {
         let allocator = arena.allocator();
-        let x = &allocator <- [0u32; 128];
+        let x = allocator.alloc([0u32; 128]);
         for (i, v) in x.iter_mut().enumerate() {
             *v = i as u32;
         }
@@ -64,7 +64,7 @@ fn on_demand_alloc() {
     };
     let addr_b = {
         let allocator = arena.allocator();
-        let x = &allocator <- [0u32; 128];
+        let x = allocator.alloc([0u32; 128]);
         for (i, v) in x.iter_mut().enumerate() {
             *v = i as u32;
         }
@@ -77,7 +77,7 @@ fn on_demand_alloc() {
     };
     let addr_c = {
         let allocator = arena.allocator();
-        let y = &allocator <- [0u8; 2 * 1024 * 1024];
+        let y = allocator.alloc([0u8; 1024 * 1024 + 512]);
 
         y.as_ptr() as usize
     };
@@ -99,14 +99,17 @@ fn fat_align_struct() {
     assert_eq!(mem::align_of::<FatAlignment>(), 256);
     let mut arena = MemoryArena::new(1);
     let allocator = arena.allocator();
-    let a = &allocator <- [FatAlignment { vals: [0f32; 8] }; 4];
+    let a = allocator.alloc([FatAlignment { vals: [0f32; 8] }; 4]);
     assert_eq!(a.len(), 4);
     assert_eq!(a.as_ptr() as usize % mem::align_of::<FatAlignment>(), 0);
 
-    let b = &allocator <- [0u8; 128];
+    let b = allocator.alloc([0u8; 128]);
 
-    let c = &allocator <- FatAlignment { vals: [0f32; 8] };
-    assert_eq!(c as *const FatAlignment as usize % mem::align_of::<FatAlignment>(), 0);
+    let c = allocator.alloc(FatAlignment { vals: [0f32; 8] });
+    assert_eq!(
+        c as *const FatAlignment as usize % mem::align_of::<FatAlignment>(),
+        0
+    );
     assert_eq!(c as *const FatAlignment as usize - b.as_ptr() as usize, 256);
 }
 
@@ -115,7 +118,7 @@ fn placement_alloc() {
     let mut arena = MemoryArena::new(16);
     let allocator = arena.allocator();
     // This would overflow the stack without proper in-place construction!
-    let b = &allocator <- [0u8; 8 * 1024 * 1024];
+    let _b = allocator.alloc([0u8; 8 * 1024 /* * 1024 */]);
 }
 
 trait Eval {
@@ -174,10 +177,10 @@ impl Eval for ShiftLeft {
 fn trait_objects() {
     let mut arena = MemoryArena::new(2);
     let allocator = arena.allocator();
-    let add: &Eval = &allocator <- Add(4);
-    let sub: &Eval = &allocator <- Subtract { x: 2 };
-    let shl: &Eval = &allocator <- ShiftLeft;
-    let clamp: &Eval = &allocator <- Clamp::new(-2, 3);
+    let add: &Eval = allocator.alloc(Add(4));
+    let sub: &Eval = allocator.alloc(Subtract { x: 2 });
+    let shl: &Eval = allocator.alloc(ShiftLeft);
+    let clamp: &Eval = allocator.alloc(Clamp::new(-2, 3));
 
     assert_eq!(add.eval(5), 4 + 5);
     assert_eq!(add.eval(sub.eval(8)), 2 - 8 + 4);
@@ -211,6 +214,8 @@ fn dynamic_slice() {
     for (i, v) in y.iter().enumerate() {
         assert_eq!(*v, i);
     }
-    assert_eq!(x.as_ptr() as usize + std::mem::size_of::<usize>() * 16, y.as_ptr() as usize);
+    assert_eq!(
+        x.as_ptr() as usize + std::mem::size_of::<usize>() * 16,
+        y.as_ptr() as usize
+    );
 }
-
