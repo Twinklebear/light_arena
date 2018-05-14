@@ -1,4 +1,4 @@
-#![feature(repr_align, attr_literals)]
+#![feature(attr_literals)]
 extern crate light_arena;
 
 use light_arena::MemoryArena;

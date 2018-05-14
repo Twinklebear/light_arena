@@ -201,6 +201,7 @@ pub struct Allocator<'a> {
 impl<'a> Allocator<'a> {
     /// Get a dynamically sized slice of data from the allocator. The
     /// contents of the slice will be unintialized.
+    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
     pub fn alloc_slice<T: Sized + Copy>(&self, len: usize) -> &mut [T] {
         let mut arena = self.arena.borrow_mut();
         let size = len * mem::size_of::<T>();
@@ -210,6 +211,7 @@ impl<'a> Allocator<'a> {
         }
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
     pub fn alloc<T: Sized + Copy>(&self, object: T) -> &mut T {
         assert!(!mem::needs_drop::<T>());
         // assert!(mem::size_of::<T>() != 0);
