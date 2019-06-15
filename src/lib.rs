@@ -1,4 +1,3 @@
-#![feature(placement_in_syntax, placement_new_protocol)]
 //#![cfg_attr(feature = "unstable", feature(plugin))]
 //#![cfg_attr(feature = "unstable", plugin(clippy))]
 
@@ -77,9 +76,7 @@
 //! - placement\_in\_syntax and placement\_new\_protocol are required,
 //! see https://github.com/rust-lang/rust/issues/27779
 
-use std::ops::{Placer, Place, InPlace};
 use std::cell::RefCell;
-use std::marker::PhantomData;
 use std::{cmp, mem, ptr};
 
 /// A block of bytes used to back allocations requested from the `MemoryArena`.
@@ -99,8 +96,11 @@ impl Block {
     /// have enough room.
     unsafe fn reserve(&mut self, size: usize, align: usize) -> *mut u8 {
         if self.has_room(size, align) {
-            let align_offset = align_address(self.buffer.as_ptr().offset(self.size as isize), align);
-            let ptr = self.buffer.as_mut_ptr().offset((self.size + align_offset) as isize);
+            let align_offset =
+                align_address(self.buffer.as_ptr().offset(self.size as isize), align);
+            let ptr = self.buffer
+                .as_mut_ptr()
+                .offset((self.size + align_offset) as isize);
             self.size += size + align_offset;
             ptr
         } else {
@@ -167,7 +167,9 @@ impl MemoryArena {
     /// active for an arena at a time. Upon destruction of the `Allocator`
     /// its allocated data is marked available again.
     pub fn allocator(&mut self) -> Allocator {
-        Allocator { arena: RefCell::new(self) }
+        Allocator {
+            arena: RefCell::new(self),
+        }
     }
     /// Reserve a chunk of bytes in some block of the memory arena
     unsafe fn reserve(&mut self, size: usize, align: usize) -> *mut u8 {
@@ -199,6 +201,7 @@ pub struct Allocator<'a> {
 impl<'a> Allocator<'a> {
     /// Get a dynamically sized slice of data from the allocator. The
     /// contents of the slice will be unintialized.
+    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
     pub fn alloc_slice<T: Sized + Copy>(&self, len: usize) -> &mut [T] {
         let mut arena = self.arena.borrow_mut();
         let size = len * mem::size_of::<T>();
@@ -207,19 +210,22 @@ impl<'a> Allocator<'a> {
             std::slice::from_raw_parts_mut(ptr, len)
         }
     }
-}
-impl<'a, 'b, T: 'a + Sized + Copy> Placer<T> for &'a Allocator<'b> {
-    type Place = AllocatorPlacer<'a, T>;
 
-    fn make_place(self) -> Self::Place {
+    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
+    pub fn alloc<T: Sized + Copy>(&self, object: T) -> &mut T {
+        assert!(!mem::needs_drop::<T>());
+        // assert!(mem::size_of::<T>() != 0);
+
         let mut arena = self.arena.borrow_mut();
-        let ptr = unsafe { arena.reserve(mem::size_of::<T>(), mem::align_of::<T>()) };
-        AllocatorPlacer {
-            ptr: ptr,
-            phantom: PhantomData,
+        unsafe {
+            let ptr = arena.reserve(mem::size_of::<T>(), mem::align_of::<T>());
+            ptr::write(ptr as *mut T, object);
+
+            &mut *(ptr as *mut T)
         }
     }
 }
+
 impl<'a> Drop for Allocator<'a> {
     /// Upon dropping the allocator we mark all the blocks in the arena
     /// as empty again, "releasing" our allocations.
@@ -228,29 +234,6 @@ impl<'a> Drop for Allocator<'a> {
         for b in &mut arena.blocks[..] {
             b.size = 0;
         }
-    }
-}
-
-/// Object representing a place to put a newly requested allocation.
-///
-/// `Drop` is never called so the placement new can only be run on
-/// `Sized + Copy` types. The lifetime of the place, and the subsequently
-/// placed `T` is tied to the lifetime of the `Allocator` which created
-/// the `AllocatorPlacer`.
-pub struct AllocatorPlacer<'a, T: 'a + Sized + Copy> {
-    ptr: *mut u8,
-    phantom: PhantomData<&'a T>,
-}
-unsafe impl<'a, T: 'a + Sized + Copy> Place<T> for AllocatorPlacer<'a, T> {
-    fn pointer(&mut self) -> *mut T {
-        self.ptr as *mut T
-    }
-}
-impl<'a, T: 'a + Sized + Copy> InPlace<T> for AllocatorPlacer<'a, T> {
-    type Owner = &'a mut T;
-
-    unsafe fn finalize(self) -> Self::Owner {
-        (self.ptr as *mut T).as_mut().unwrap()
     }
 }
 
@@ -296,4 +279,3 @@ mod tests {
         assert_eq!(arena.blocks[1].size, two_mb);
     }
 }
-
