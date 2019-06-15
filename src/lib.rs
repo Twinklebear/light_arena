@@ -49,9 +49,9 @@
 //!
 //! let mut arena = light_arena::MemoryArena::new(2);
 //! let allocator = arena.allocator();
-//! let a: &Foo = &allocator.alloc(Baz);
-//! let b: &Foo = &allocator.alloc(Bar(10));
-//! let c: &Foo = &allocator.alloc(Bar(14));
+//! let a: &Foo = allocator.alloc(Baz);
+//! let b: &Foo = allocator.alloc(Bar(10));
+//! let c: &Foo = allocator.alloc(Bar(14));
 //! a.speak();
 //! b.speak();
 //! c.speak();
@@ -244,13 +244,11 @@ mod tests {
         let mut arena = MemoryArena::new(1);
         let a = unsafe { arena.reserve(1024, 4) };
         assert_eq!(align_address(a, 4), 0);
-        assert_eq!(arena.blocks[0].size, 1024);
 
         let two_mb = 2 * 1024 * 1024;
         let b = unsafe { arena.reserve(two_mb, 32) };
         assert_eq!(align_address(b, 32), 0);
         assert_eq!(arena.blocks.len(), 2);
         assert_eq!(arena.blocks[1].buffer.capacity(), two_mb + 32);
-        assert_eq!(arena.blocks[1].size, two_mb);
     }
 }
