@@ -1,5 +1,13 @@
 # light\_arena
 
+**Temporarily a more simple memory pool for keeping stack alloc objects
+in copied into a shared heap rather than a true placement new memory arena.**
+Unfortunately the path forward for placement new in Rust does not look
+good right now, so I've reverted this crate to work more like a memory
+heap where stuff can be put, but not constructed in place. This mimics
+similar behavior, but allocations are limited to the stack size and
+must first be made on the stack then copied in.
+
 A lightweight, placement based memory arena for any types which are `Sized + Copy`.
 This crate uses the placement in syntax and placement new protocol and
 thus **requires nightly Rust**.
