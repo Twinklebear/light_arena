@@ -1,6 +1,6 @@
 [package]
 name = "light_arena"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Will Usher <willusher.life@gmail.com>"]
 
 description = "A lightweight, placement based memory arena for types which are Sized + Copy. This crate requires nightly."
