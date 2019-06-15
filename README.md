@@ -8,10 +8,6 @@ heap where stuff can be put, but not constructed in place. This mimics
 similar behavior, but allocations are limited to the stack size and
 must first be made on the stack then copied in.
 
-A lightweight, placement based memory arena for any types which are `Sized + Copy`.
-This crate uses the placement in syntax and placement new protocol and
-thus **requires nightly Rust**.
-
 This crate is written to solve a specific problem I have in
 [tray\_rust](https://github.com/Twinklebear/tray_rust), where I want to
 store trait objects and f32 arrays in a memory arena which is then reset

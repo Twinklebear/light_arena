@@ -1,9 +1,10 @@
-//#![cfg_attr(feature = "unstable", feature(plugin))]
-//#![cfg_attr(feature = "unstable", plugin(clippy))]
-
-//! A lightweight, placement based memory arena for any types which are `Sized + Copy`.
-//! This crate uses the placement in syntax and placement new protocol and
-//! thus **requires nightly Rust**.
+//! **Temporarily a more simple memory pool for keeping stack alloc objects
+//! in copied into a shared heap rather than a true placement new memory arena.**
+//! Unfortunately the path forward for placement new in Rust does not look
+//! good right now, so I've reverted this crate to work more like a memory
+//! heap where stuff can be put, but not constructed in place. This mimics
+//! similar behavior, but allocations are limited to the stack size and
+//! must first be made on the stack then copied in.
 //!
 //! This crate is written to solve a specific problem I have in
 //! [tray\_rust](https://github.com/Twinklebear/tray_rust), where I want to
@@ -22,20 +23,9 @@
 //! Note that **Drop is never called** on objects allocated in the arena,
 //! and thus the restriction that `T: Sized + Copy`.
 //!
-//! ```rust
-//! #![feature(placement_in_syntax)]
-//! use light_arena;
-//!
-//! let mut arena = light_arena::MemoryArena::new(8);
-//! let alloc = arena.allocator();
-//! // This would overflow the stack without placement new!
-//! let bytes: &[u8] = &alloc <- [0u8; 8 * 1024 * 1024];
-//! ```
-//!
 //! The arena is untyped and can store anything which is `Sized + Copy`.
 //!
 //! ```rust
-//! #![feature(placement_in_syntax)]
 //!
 //! trait Foo {
 //!     fn speak(&self);
@@ -59,9 +49,9 @@
 //!
 //! let mut arena = light_arena::MemoryArena::new(2);
 //! let allocator = arena.allocator();
-//! let a: &Foo = &allocator <- Baz;
-//! let b: &Foo = &allocator <- Bar(10);
-//! let c: &Foo = &allocator <- Bar(14);
+//! let a: &Foo = &allocator.alloc(Baz);
+//! let b: &Foo = &allocator.alloc(Bar(10));
+//! let c: &Foo = &allocator.alloc(Bar(14));
 //! a.speak();
 //! b.speak();
 //! c.speak();
@@ -133,19 +123,6 @@ fn align_address(ptr: *const u8, align: usize) -> usize {
 /// arena use the `Allocator` returned by `allocator`. Only one `Allocator`
 /// can be active for an arena at a time, after the allocator is dropped
 /// the space used by its allocations is made available again.
-///
-/// # Example
-/// Allocations are made using the allocator and the placement in syntax.
-///
-/// ```
-/// #![feature(placement_in_syntax)]
-/// use light_arena;
-///
-/// let mut arena = light_arena::MemoryArena::new(8);
-/// let alloc = arena.allocator();
-/// // This would overflow the stack without placement new!
-/// let bytes: &[u8] = &alloc <- [0u8; 8 * 1024 * 1024];
-/// ```
 pub struct MemoryArena {
     blocks: Vec<Block>,
     block_size: usize,
@@ -201,7 +178,6 @@ pub struct Allocator<'a> {
 impl<'a> Allocator<'a> {
     /// Get a dynamically sized slice of data from the allocator. The
     /// contents of the slice will be unintialized.
-    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
     pub fn alloc_slice<T: Sized + Copy>(&self, len: usize) -> &mut [T] {
         let mut arena = self.arena.borrow_mut();
         let size = len * mem::size_of::<T>();
@@ -211,7 +187,6 @@ impl<'a> Allocator<'a> {
         }
     }
 
-    #[cfg_attr(feature = "cargo-clippy", allow(mut_from_ref))]
     pub fn alloc<T: Sized + Copy>(&self, object: T) -> &mut T {
         assert!(!mem::needs_drop::<T>());
         // assert!(mem::size_of::<T>() != 0);
