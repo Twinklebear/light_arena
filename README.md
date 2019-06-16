@@ -17,7 +17,7 @@ actually construct objects in place instead of copying from a stack temporary,
 and reusing the previously allocated space via the `Allocator` scopes.
 If you have a similar problem, this might be the right crate for you!
 
-![Crate Version Badge](https://img.shields.io/crates/v/light_arena.svg)
+[![Crate Version Badge](https://img.shields.io/crates/v/light_arena.svg)](https://crates.io/crates/light_arena)
 [![Build Status](https://travis-ci.org/Twinklebear/light_arena.svg?branch=master)](https://travis-ci.org/Twinklebear/light_arena)
 
 ## Examples
