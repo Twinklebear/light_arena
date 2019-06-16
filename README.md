@@ -36,13 +36,13 @@ use light_arena;
 let mut arena = light_arena::MemoryArena::new(8);
 let alloc = arena.allocator();
 // This would overflow the stack without placement new!
+// **Note: this example will no longer work without true placement new**
 let bytes: &[u8] = &alloc <- [0u8; 8 * 1024 * 1024];
 ```
 
 The arena is untyped and can store anything which is `Sized + Copy`.
 
 ```rust
-#![feature(placement_in_syntax)]
 use light_arena;
 
 trait Foo {
@@ -68,9 +68,9 @@ impl Foo for Baz {
 fn main() {
 	let mut arena = light_arena::MemoryArena::new(2);
 	let allocator = arena.allocator();
-	let a: &Foo = &allocator <- Baz;
-	let b: &Foo = &allocator <- Bar(10);
-	let c: &Foo = &allocator <- Bar(14);
+	let a: &Foo = allocator.alloc(Baz);
+	let b: &Foo = allocato.alloc(Bar(10));
+	let c: &Foo = allocator.alloc(Bar(14))
 	a.speak();
 	b.speak();
 	c.speak();
